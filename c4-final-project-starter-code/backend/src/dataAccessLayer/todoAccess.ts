@@ -1,9 +1,11 @@
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 
 import * as AWS from 'aws-sdk';
+import * as AWSXRay from 'aws-xray-sdk';
 import { TodoItem } from '../models/TodoItem';
 import { createLogger } from '../utils/logger';
 const logger = createLogger('data');
+const XAWS = AWSXRay.captureAWS(AWS);
 export class ToDoAccess {
     constructor(
         private readonly docClient: DocumentClient = createDynamodbClient(),
@@ -138,19 +140,9 @@ export class ToDoAccess {
             return url
     }
 
-    // async addImage(todoItem: TodoItem): Promise<TodoItem> {
-    //     todoItem.attachmentUrl = `https://${this.bucketName}.s3.amazonaws.com/${todoItem.todoId}`;
-    //     await this.docClient.put({
-    //         TableName: this.todoListTable,
-    //         Item: todoItem
-    //     }).promise();
-
-    //     return todoItem as TodoItem;
-    // }
-
     async getUploadUrl(todoId: string) {
         logger.info('Generate signed URL');
-        const s3 = new AWS.S3({
+        const s3 = new XAWS.S3({
             signatureVersion: 'v4'
         })
         return s3.getSignedUrl('putObject', {
@@ -165,12 +157,12 @@ function createDynamodbClient() {
     logger.info(process.env.IS_OFFLINE)
     if(process.env.IS_OFFLINE == 'true') {
         logger.info('Creating a local DynamoDb instance');
-        return new AWS.DynamoDB.DocumentClient({
+        return new XAWS.DynamoDB.DocumentClient({
             region: 'localhost',
             endpoint: 'http://localhost:8000'
         })
     } 
-    return new AWS.DynamoDB.DocumentClient();
+    return new XAWS.DynamoDB.DocumentClient();
 }
 
 
